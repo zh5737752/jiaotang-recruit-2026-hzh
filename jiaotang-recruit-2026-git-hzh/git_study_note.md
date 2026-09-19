@@ -58,7 +58,7 @@
 
    `$ cat readme.txt`
 
-5. 找不到版本的commit id,用git reflog用来记录你的每一次命令：
+5. 若找不到版本的commit id,用git reflog来查看历史命令：
 
    `$ git reflog`
 
