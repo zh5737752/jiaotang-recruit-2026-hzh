@@ -11,6 +11,8 @@
 
    `$ git add readme.txt`
 
+   `git add -A` # 可一次性把所有文件提交到缓存区
+
    **注意**：要先ctrl+s保存后才能提交！
 
 2. 用命令`git commit`告诉Git，把文件提交到仓库：  
@@ -117,3 +119,9 @@
 
 1. 法1：在本地输入 `$ git clone https://github.com/zh5737752/gitskills` (后面那一串网址是仓库上方的网址)   （使用https协议下载）  
    法2：在本地输入：`$ git clone git@github.com:zh5737752/gitskills.git`（账户名/文件名）   （使用ssh协议，免密、安全、不被打断）
+
+### 为git配置代理
+
+- 查看：`git config --global --get http.proxy`
+- 配置代理：`git config --global http.proxy http://127.0.0.1:7890`（假设代理端口是 7890，要替换为实际端口）（--global 表示全局配置，执行一次后对当前用户的所有仓库生效，之后无需重复输入）
+- 更改代理端口 先清除记录 `git config --global --unset http.proxy`  再配置代理`git config --global http.proxy http://127.0.0.1:7890`
