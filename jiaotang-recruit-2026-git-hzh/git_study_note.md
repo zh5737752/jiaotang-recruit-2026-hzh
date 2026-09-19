@@ -94,7 +94,7 @@
 
   2. 把删除结果提交： `git commit -m "remove test file"`
 
-  - 注意：提交删除 ！= 从历史记录中消失  ，可以从历史记录中恢复该文件
+  - **注意**：提交删除 ！= 从历史记录中消失  ，可以从历史记录中恢复该文件
 
   - 想撤销删除：同 “插销修改”
 
@@ -110,7 +110,8 @@
 
 3. 关联后，使用命令`git push -u origin main`第一次推送main分支的所有内容；
 
-4. 此后，每次本地提交后，只要有必要，就可以使用命令`git push origin main`推送最新修改；
+4. 此后，每次本地提交后，就可以使用命令`git push origin main`推送最新修改；  
+   若分支与远程已经绑定，可用`git push`
 
 - 删除远程库  
   如果添加的时候地址写错了，或者就是想删除远程库，可以用`git remote rm <name>`命令。使用前，建议先用`git remote -v`查看远程库信息  
@@ -125,3 +126,200 @@
 - 查看：`git config --global --get http.proxy`
 - 配置代理：`git config --global http.proxy http://127.0.0.1:7890`（假设代理端口是 7890，要替换为实际端口）（--global 表示全局配置，执行一次后对当前用户的所有仓库生效，之后无需重复输入）
 - 更改代理端口 先清除记录 `git config --global --unset http.proxy`  再配置代理`git config --global http.proxy http://127.0.0.1:7890`
+
+
+---
+
+## 分支管理
+
+### 创建与合并分支
+
+Git鼓励使用分支完成某个任务，合并后再删除分支，这样既安全又不影响他人工作。
+
+- 查看所有分支：`git branch`
+- 创建分支：`git branch <name>`
+- 切换分支：`git checkout <name>`
+- 创建并切换分支：`git checkout -b <name>`（等价于 `git branch dev` + `git checkout dev`）
+
+```bash
+# 创建并切换到dev分支
+$ git checkout -b dev
+
+# 在dev分支上正常提交
+$ git add readme.txt
+$ git commit -m "branch test"
+
+# 切回master分支，合并dev
+$ git checkout master
+$ git merge dev
+
+# 合并完成后，删除dev分支
+$ git branch -d dev
+```
+
+**原理**：`HEAD`指向当前分支，分支指针（如`master`、`dev`）指向提交。创建分支就是新建一个指针指向当前提交，切换分支就是让`HEAD`指向该指针。
+
+### 解决冲突
+
+当两个分支对同一文件的同一位置做了不同修改时，`git merge`会报冲突。
+
+```bash
+$ git merge feature1
+Auto-merging readme.txt
+CONFLICT (content): Merge conflict in readme.txt
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+冲突文件会被Git用标记标出：
+
+```
+Creating a new branch is quick AND simple.
+```
+
+手动编辑文件，保留正确内容后，重新提交即可：
+
+```bash
+$ git add readme.txt
+$ git commit -m "conflict fixed"
+```
+
+用 `git log --graph --pretty=oneline --abbrev-commit` 可以查看分支合并图。
+
+### 分支管理策略
+
+通常合并分支时，Git采用 **Fast forward** 模式，删除分支后会丢掉分支信息。如果强制禁用Fast forward，Git会在merge时生成一个新的commit，从分支历史上就能看出合并痕迹。
+
+```bash
+$ git merge --no-ff -m "merge with no-ff" dev
+```
+
+- `--no-ff` 表示禁用Fast forward，`-m` 写合并commit信息。
+- 实际开发中，`master`分支应保持非常稳定，仅用于发布新版本；日常开发在`dev`分支上进行。
+
+### Bug分支（git stash）
+
+修复bug时，当前工作尚未完成，不想提交又想切换分支，可以用`git stash`把工作现场“储藏”起来。
+
+```bash
+# 储藏当前工作现场
+$ git stash
+
+# 从master创建临时分支修复bug
+$ git checkout master
+$ git checkout -b issue-101
+# ...修复并提交...
+$ git checkout master
+$ git merge --no-ff -m "merged bug fix 101" issue-101
+$ git branch -d issue-101
+
+# 回到dev，恢复工作现场
+$ git checkout dev
+$ git stash list          # 查看储藏列表
+$ git stash pop           # 恢复并删除stash
+# 或
+$ git stash apply         # 恢复但保留stash
+$ git stash drop          # 手动删除stash
+```
+
+### Feature分支
+
+每添加一个新功能，最好新建一个`feature`分支，完成后合并再删除。如果要丢弃一个**没有被合并过**的分支，需要用大写的 `-D` 强行删除。
+
+```bash
+# 创建并开发feature分支
+$ git switch -c feature-vulcan
+# ...开发并提交...
+
+# 如果功能取消，强行删除未合并的分支
+$ git branch -D feature-vulcan
+```
+
+
+## 标签管理
+
+发布版本时，通常在版本库中打一个标签（tag），唯一确定打标签时刻的版本，标签本质是指向某个commit的指针，与分支类似但不能移动。
+
+### 创建标签
+
+```bash
+# 切换到需要打标签的分支
+$ git checkout master
+
+# 在当前最新提交上打标签
+$ git tag v1.0
+
+# 查看所有标签
+$ git tag
+
+# 在指定commit id上打标签
+$ git tag v0.9 faaaaa6
+
+# 创建带说明的标签（-a指定标签名，-m指定说明）
+$ git tag -a v0.8 -m "version 0.8 released" 7c4d427
+
+# 查看标签详情
+$ git show v0.8
+```
+
+### 操作标签
+
+```bash
+# 删除本地标签
+$ git tag -d v0.9
+
+# 推送单个标签到远程
+$ git push origin v1.0
+
+# 一次性推送全部未推送的标签
+$ git push origin --tags
+
+# 删除远程标签（先删本地，再push）
+$ git tag -d v0.9
+$ git push origin :refs/tags/v0.9
+```
+
+
+## 忽略特殊文件
+
+有些文件必须放在工作目录但不需要提交（如数据库密码配置文件、编译产物等）。在仓库根目录创建 `.gitignore` 文件，把要忽略的文件名填进去即可。
+
+```
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Python
+*.py[cod]
+*.so
+dist/
+build/
+
+# 自定义配置
+db.ini
+deploy_key_rsa
+```
+
+- `.gitignore` 本身应该提交到Git，确保所有人使用相同规则。
+- 如果某个被忽略的文件确实需要添加，用 `-f` 强制添加：`git add -f App.class`。
+- 检查哪条规则忽略了文件：`git check-ignore -v App.class`。
+- 添加例外规则（不排除某文件）：`!.gitignore`、`!App.class`。
+
+
+## 配置别名
+
+通过 `alias` 简化常用命令，`--global` 参数表示对当前用户全局生效。
+
+```bash
+$ git config --global alias.st status
+$ git config --global alias.co checkout
+$ git config --global alias.ci commit
+$ git config --global alias.br branch
+$ git config --global alias.unstage 'reset HEAD'
+$ git config --global alias.last 'log -1'
+```
+
+配置后 `git st` 即代表 `git status`，`git co` 即代表 `git checkout`。
+
+配置文件位置：
+- 当前仓库：`.git/config`（别名在 `[alias]` 段中，删掉对应行即可删除别名）。
+- 当前用户： `C:\Users\用户名`
